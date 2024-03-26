@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expenses Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+    }
+
+    .form-container {
+      width: 300px; /* Set width of form container */
+      position: fixed;
+      top: 20px;
+      left: 20px; /* Adjust as needed */
+      padding: 20px;
+      border-radius: 8px;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .list-container {
+      flex: 1;
+      margin-left: 340px; /* Adjust to accommodate the fixed form container */
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    input[type="date"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 16px;
+      color: #333;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px 24px;
+      background-color: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      font-size: 16px;
+    }
+
+    button:hover {
+      color: #45a049;
+    }
+
+    .monthly-expense {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 15px;
+      background-color: #f9f9f9;
+      padding: 15px;
+      position: relative; /* Add position relative */
+    }
+
+    .expense-details {
+      display: none;
+    }
+
+    .monthly-expense:hover .expense-details {
+      display: block;
+    }
+
+    .month-title {
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .month-total {
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .expense-item {
+      margin-bottom: 5px;
+    }
+
+    .expense-date {
+      font-style: italic;
+      margin-left: 10px;
+    }
+
+    .delete-button {
+      position: absolute;
+      top: -7px;
+      right: -390px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      color: #888;
+      transition: color 0.1s;
+    }
+
+    .delete-button:hover {
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="form-container">
+      <h1>Expenses Form</h1>
+      <form id="expenseForm">
+        <div class="form-group">
+          <label for="expenseName">Expense Name:</label>
+          <input type="text" id="expenseName" name="expenseName" required>
+        </div>
+        <div class="form-group">
+          <label for="cost">Cost:</label>
+          <input type="number" id="cost" name="cost" min="0" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label for="details">Details:</label>
+          <textarea id="details" name="details"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="date">Date of Purchase:</label>
+          <input type="date" id="date" name="date" required>
+        </div>
+        <button type="submit">Add Expense</button>
+      </form>
+    </div>
+    <div class="list-container" id="monthlyExpenses">
+      <!-- Monthly expenses will be displayed here -->
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      let expenses = JSON.parse(localStorage.getItem("expenses")) || {};
+
+      function calculateMonthlyExpenses() {
+        const monthlyExpensesContainer = document.getElementById("monthlyExpenses");
+        monthlyExpensesContainer.innerHTML = ""; // Clear previous content
+
+        for (const month in expenses) {
+          if (expenses.hasOwnProperty(month)) {
+            if (expenses[month].length === 0) {
+              delete expenses[month]; // Remove month if no expenses
+            } else {
+              const monthDiv = document.createElement("div");
+              monthDiv.classList.add("monthly-expense");
+
+              const deleteButton = document.createElement("button");
+              deleteButton.classList.add("delete-button");
+              deleteButton.textContent = "×";
+              deleteButton.addEventListener("click", function() {
+                delete expenses[month];
+                localStorage.setItem("expenses", JSON.stringify(expenses));
+                calculateMonthlyExpenses();
+              });
+
+              monthDiv.appendChild(deleteButton);
+
+              const monthTitle = document.createElement("div");
+              monthTitle.classList.add("month-title");
+              monthTitle.textContent = `${month}`;
+              monthDiv.appendChild(monthTitle);
+
+              const total = expenses[month].reduce((acc, expense) => acc + parseFloat(expense.cost), 0);
+              const monthTotal = document.createElement("div");
+              monthTotal.classList.add("month-total");
+              monthTotal.textContent = `Total ${month}'s expenses: $${total.toFixed(2)}`;
+              monthDiv.appendChild(monthTotal);
+
+              expenses[month].forEach(expense => {
+                const expenseItem = document.createElement("div");
+                expenseItem.classList.add("expense-item");
+
+                const expenseDetails = document.createElement("div");
+                expenseDetails.classList.add("expense-details");
+                expenseDetails.innerHTML = `
+                  <span>Details: ${expense.details}</span>
+                  <span>Date: ${expense.date}</span>
+                `;
+
+                expenseItem.textContent = `${expense.expenseName}: $${expense.cost}`;
+                expenseItem.appendChild(expenseDetails);
+
+                monthDiv.appendChild(expenseItem);
+              });
+
+              monthlyExpensesContainer.appendChild(monthDiv);
+            }
+          }
+        }
+      }
+
+      const expenseForm = document.getElementById("expenseForm");
+      expenseForm.addEventListener("submit", function(event) {
+        event.preventDefault();
+
+                const expenseName = document.getElementById("expenseName").value;
+        const cost = document.getElementById("cost").value;
+        const details = document.getElementById("details").value;
+        const date = document.getElementById("date").value;
+
+        const month = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        if (!expenses.hasOwnProperty(month)) {
+          expenses[month] = [];
+        }
+
+        expenses[month].unshift({ expenseName, cost, details, date });
+        localStorage.setItem("expenses", JSON.stringify(expenses));
+        calculateMonthlyExpenses();
+
+        // Reset the form
+        expenseForm.reset();
+      });
+
+      calculateMonthlyExpenses(); // Initial call to display existing expenses
+    });
+  </script>
+</body>
+</html>
+
